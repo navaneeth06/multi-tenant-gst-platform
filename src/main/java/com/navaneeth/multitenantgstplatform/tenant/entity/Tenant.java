@@ -1,4 +1,5 @@
 package com.navaneeth.multitenantgstplatform.tenant.entity;
+
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -31,7 +32,7 @@ public class Tenant {
 
     private String phone;
 
-    private Boolean active;
+    private Boolean active = true;
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp
