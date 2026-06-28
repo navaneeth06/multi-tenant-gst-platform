@@ -3,6 +3,7 @@ package com.navaneeth.multitenantgstplatform.tenant.controller;
 import com.navaneeth.multitenantgstplatform.common.response.ApiResponse;
 import com.navaneeth.multitenantgstplatform.tenant.dto.CreateTenantRequest;
 import com.navaneeth.multitenantgstplatform.tenant.dto.TenantResponse;
+import com.navaneeth.multitenantgstplatform.tenant.dto.UpdateTenantRequest;
 import com.navaneeth.multitenantgstplatform.tenant.service.TenantService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/tenants")
@@ -42,12 +44,31 @@ public class TenantController {
         ApiResponse<TenantResponse> apiResponse =
                 ApiResponse.<TenantResponse>builder()
                         .success(true)
-                        .message("Tenant created successfully.")
+                        .message("Tenants created successfully.")
                         .data(response)
                         .timestamp(LocalDateTime.now())
                         .build();
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(apiResponse);
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<TenantResponse>> updateTenant(
+            @PathVariable UUID id,
+            @RequestBody UpdateTenantRequest request) {
+
+        TenantResponse response = tenantService.updateTenant(id, request);
+
+        ApiResponse<TenantResponse> apiResponse =
+                ApiResponse.<TenantResponse>builder()
+                        .success(true)
+                        .message("Tenants updated successfully.")
+                        .data(response)
+                        .timestamp(LocalDateTime.now())
+                        .build();
+
+        return ResponseEntity.ok(apiResponse);
+
     }
 }
