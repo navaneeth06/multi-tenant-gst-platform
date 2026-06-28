@@ -13,4 +13,13 @@ public class TenantResponse {
 
     private String name;
 
+    private String slug;
+
+    private String gstin;
+
+    private String email;
+
+    private String phone;
+
+    private boolean active;
 }
