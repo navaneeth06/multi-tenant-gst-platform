@@ -72,4 +72,17 @@ public class TenantServiceImpl implements TenantService {
 
         return tenantMapper.toResponse(tenant);
     }
+
+    @Override
+    public TenantResponse toggleTenantStatus(UUID id) {
+
+        Tenant tenant = tenantRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Tenant not found"));
+
+        tenant.setActive(!tenant.getActive());
+
+        Tenant updatedTenant = tenantRepository.save(tenant);
+
+        return tenantMapper.toResponse(updatedTenant);
+    }
 }

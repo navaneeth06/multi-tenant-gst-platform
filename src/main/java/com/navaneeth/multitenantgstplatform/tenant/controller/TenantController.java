@@ -71,4 +71,20 @@ public class TenantController {
         return ResponseEntity.ok(apiResponse);
 
     }
+
+    @PatchMapping("/toggle/{id}")
+    public ResponseEntity<ApiResponse<TenantResponse>> toggleTenantStatus(@PathVariable UUID id) {
+        TenantResponse response = tenantService.toggleTenantStatus(id);
+        String message = response.isActive()
+                ? "Tenant unblocked successfully."
+                : "Tenant blocked successfully.";
+
+        ApiResponse<TenantResponse> apiResponse = ApiResponse.<TenantResponse>builder()
+                .success(true)
+                .message(message)
+                .data(response)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
 }
