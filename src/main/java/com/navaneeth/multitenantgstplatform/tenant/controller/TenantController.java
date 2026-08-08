@@ -72,7 +72,7 @@ public class TenantController {
 
     }
 
-    @PatchMapping("/toggle/{id}")
+    @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<TenantResponse>> toggleTenantStatus(@PathVariable UUID id) {
         TenantResponse response = tenantService.toggleTenantStatus(id);
         String message = response.isActive()
