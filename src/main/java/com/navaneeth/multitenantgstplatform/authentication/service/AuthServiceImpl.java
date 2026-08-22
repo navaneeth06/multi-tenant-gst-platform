@@ -5,6 +5,8 @@ import com.navaneeth.multitenantgstplatform.authentication.dto.LoginResponse;
 import com.navaneeth.multitenantgstplatform.authentication.dto.UserResponse;
 import com.navaneeth.multitenantgstplatform.authentication.entity.User;
 import com.navaneeth.multitenantgstplatform.authentication.repository.UserRepository;
+import com.navaneeth.multitenantgstplatform.common.exception.InvalidCredentialsException;
+import com.navaneeth.multitenantgstplatform.common.exception.UserInactiveException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -39,18 +41,22 @@ public class AuthServiceImpl implements AuthService {
                         request.getUsername()
                 )
                 .orElseThrow(() ->
-                        new RuntimeException("Invalid username or password")
+                        new InvalidCredentialsException(
+                                "Invalid username or password"
+                        )
                 );
 
         if (!user.getActive()) {
-            throw new RuntimeException("User account is inactive");
+            throw new UserInactiveException("User account is inactive");
         }
 
         if (!passwordEncoder.matches(
                 request.getPassword(),
                 user.getPassword()
         )) {
-            throw new RuntimeException("Invalid username or password");
+            throw new InvalidCredentialsException(
+                    "Invalid username or password"
+            );
         }
 
         // JWT generation will be added next.
