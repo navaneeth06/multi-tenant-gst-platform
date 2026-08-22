@@ -1,6 +1,8 @@
 package com.navaneeth.multitenantgstplatform.authentication.service;
 
+import com.navaneeth.multitenantgstplatform.authentication.dto.JwtTokenData;
 import com.navaneeth.multitenantgstplatform.authentication.entity.User;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,6 +12,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 
 @Service
 public class JwtServiceImpl implements JwtService {
@@ -49,4 +52,19 @@ public class JwtServiceImpl implements JwtService {
         return expiration;
     }
 
+    @Override
+    public JwtTokenData extractTokenData(String token) {
+
+        Claims claims = Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        return new JwtTokenData(
+                UUID.fromString(claims.getSubject()),
+                UUID.fromString(claims.get("tenantId", String.class)),
+                claims.get("username", String.class)
+        );
+    }
 }
