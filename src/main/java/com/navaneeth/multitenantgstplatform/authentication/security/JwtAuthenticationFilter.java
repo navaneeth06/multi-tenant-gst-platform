@@ -2,6 +2,7 @@ package com.navaneeth.multitenantgstplatform.authentication.security;
 
 import com.navaneeth.multitenantgstplatform.authentication.dto.JwtTokenData;
 import com.navaneeth.multitenantgstplatform.authentication.service.JwtService;
+import com.navaneeth.multitenantgstplatform.common.exception.InvalidTokenException;
 import io.micrometer.common.lang.NonNull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -49,7 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            tokenData.userId(),
+                            tokenData,
                             null,
                             Collections.emptyList()
                     );
@@ -58,7 +59,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .getContext()
                     .setAuthentication(authentication);
 
-        } catch (Exception exception) {
+        } catch (InvalidTokenException exception) {
 
             SecurityContextHolder.clearContext();
         }

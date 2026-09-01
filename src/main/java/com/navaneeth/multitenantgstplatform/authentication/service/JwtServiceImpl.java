@@ -2,6 +2,7 @@ package com.navaneeth.multitenantgstplatform.authentication.service;
 
 import com.navaneeth.multitenantgstplatform.authentication.dto.JwtTokenData;
 import com.navaneeth.multitenantgstplatform.authentication.entity.User;
+import com.navaneeth.multitenantgstplatform.common.exception.InvalidTokenException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -54,17 +55,21 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public JwtTokenData extractTokenData(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
 
-        Claims claims = Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+            return new JwtTokenData(
+                    UUID.fromString(claims.getSubject()),
+                    UUID.fromString(claims.get("tenantId", String.class)),
+                    claims.get("username", String.class)
+            );
+        } catch (Exception e) {
+            throw new InvalidTokenException("Invalid or expired token");
+        }
 
-        return new JwtTokenData(
-                UUID.fromString(claims.getSubject()),
-                UUID.fromString(claims.get("tenantId", String.class)),
-                claims.get("username", String.class)
-        );
     }
 }

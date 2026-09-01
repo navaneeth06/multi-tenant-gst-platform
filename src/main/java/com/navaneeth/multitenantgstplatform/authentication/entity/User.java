@@ -29,8 +29,8 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "tenant_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id")
     private Tenant tenant;
 
     @Column(nullable = false)
@@ -48,7 +48,7 @@ public class User {
     @Builder.Default
     @Column(nullable = false)
     private Boolean active = true;
-    
+
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp
