@@ -9,6 +9,9 @@ spring:
       ddl-auto: none
     show-sql: true
 
+  flyway:
+    out-of-order: true
+
   application:
     name: multi-tenant-gst-platform
 

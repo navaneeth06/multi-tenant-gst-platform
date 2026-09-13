@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 public class SeederRunner implements ApplicationRunner {
 
     private final AuthorizationSeeder authorizationSeeder;
+    private final StateSeeder stateSeeder;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -20,6 +21,10 @@ public class SeederRunner implements ApplicationRunner {
 
         if (args.getOptionValues("seed").contains("authorization")) {
             authorizationSeeder.seed();
+        }
+
+        if (args.getOptionValues("seed").contains("states")) {
+            stateSeeder.seed();
         }
     }
 }
