@@ -6,8 +6,8 @@ import com.navaneeth.multitenantgstplatform.feature.branch.dto.UpdateBranchReque
 import com.navaneeth.multitenantgstplatform.feature.branch.entity.Branch;
 import com.navaneeth.multitenantgstplatform.feature.branch.mapper.BranchMapper;
 import com.navaneeth.multitenantgstplatform.feature.branch.repository.BranchRepository;
-import com.navaneeth.multitenantgstplatform.feature.master.entity.State;
-import com.navaneeth.multitenantgstplatform.feature.master.repository.StateRepository;
+import com.navaneeth.multitenantgstplatform.feature.gstregistration.entity.GSTRegistration;
+import com.navaneeth.multitenantgstplatform.feature.gstregistration.repository.GSTRegistrationRepository;
 import com.navaneeth.multitenantgstplatform.feature.tenant.entity.Tenant;
 import com.navaneeth.multitenantgstplatform.feature.tenant.repository.TenantRepository;
 import com.navaneeth.multitenantgstplatform.infrastructure.security.SecurityContextService;
@@ -24,7 +24,7 @@ public class BranchServiceImpl implements BranchService {
 
     private final BranchRepository branchRepository;
     private final TenantRepository tenantRepository;
-    private final StateRepository stateRepository;
+    private final GSTRegistrationRepository gstRegistrationRepository;
     private final BranchMapper branchMapper;
     private final SecurityContextService securityContextService;
 
@@ -50,20 +50,22 @@ public class BranchServiceImpl implements BranchService {
                         )
                 );
 
+        // Loading via findByIdAndTenantId (not findById) is deliberate here —
+        // it guarantees the registration actually belongs to this tenant,
+        // not just that some registration with this ID exists somewhere.
+        GSTRegistration gstRegistration = gstRegistrationRepository
+                .findByIdAndTenantId(request.gstRegistrationId(), tenantId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "GST registration not found for this tenant"
+                        )
+                );
+
         Branch branch = branchMapper.toEntity(request);
 
         branch.setTenant(tenant);
+        branch.setGstRegistration(gstRegistration);
 
-        if (request.stateId() != null) {
-            State state = stateRepository.findById(request.stateId())
-                    .orElseThrow(() ->
-                            new IllegalArgumentException(
-                                    "State not found"
-                            )
-                    );
-
-            branch.setState(state);
-        }
 
         branch.setStatus(Branch.BranchStatus.ACTIVE);
 
@@ -78,7 +80,7 @@ public class BranchServiceImpl implements BranchService {
     public List<BranchResponse> getBranches() {
 
         UUID tenantId = getCurrentTenantId();
-        
+
         return branchRepository.findByTenantId(tenantId)
                 .stream()
                 .map(branchMapper::toResponse)
@@ -136,17 +138,12 @@ public class BranchServiceImpl implements BranchService {
 
         branchMapper.updateBranch(request, branch);
 
-        if (request.stateId() != null) {
-
-            State state = stateRepository.findById(request.stateId())
-                    .orElseThrow(() ->
-                            new IllegalArgumentException(
-                                    "State not found"
-                            )
-                    );
-
-            branch.setState(state);
-        }
+        // Deliberately no gstRegistrationId/stateId handling here.
+        // A branch's registration (and therefore its state) is fixed at
+        // creation time and is not editable — same reasoning as
+        // GSTRegistration itself having no update endpoint. Moving a branch
+        // to a different registration is a "close this branch, open a new
+        // one" operation, not a field edit.
 
         Branch updatedBranch = branchRepository.save(branch);
 

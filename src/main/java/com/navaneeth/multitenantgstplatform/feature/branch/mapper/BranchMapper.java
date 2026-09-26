@@ -10,18 +10,20 @@ import org.mapstruct.*;
 public interface BranchMapper {
 
     @Mapping(target = "tenant", ignore = true)
-    @Mapping(target = "state", ignore = true)
+    @Mapping(target = "gstRegistration", ignore = true)
     @Mapping(target = "status", ignore = true)
     Branch toEntity(CreateBranchRequest request);
 
     @Mapping(source = "tenant.id", target = "tenantId")
-    @Mapping(source = "state.id", target = "stateId")
-    @Mapping(source = "state.name", target = "stateName")
+    @Mapping(source = "gstRegistration.id", target = "gstRegistrationId")
+    @Mapping(source = "gstRegistration.gstin", target = "gstin")
+    @Mapping(source = "gstRegistration.state.name", target = "stateName")
+    @Mapping(source = "gstRegistration.state.id", target = "stateId")
     BranchResponse toResponse(Branch branch);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "tenant", ignore = true)
-    @Mapping(target = "state", ignore = true)
+    @Mapping(target = "gstRegistration", ignore = true)
     @Mapping(target = "status", ignore = true)
     void updateBranch(
             UpdateBranchRequest request,

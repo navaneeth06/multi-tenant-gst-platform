@@ -1,5 +1,6 @@
 package com.navaneeth.multitenantgstplatform.feature.branch.dto;
 
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
@@ -12,7 +13,8 @@ public record UpdateBranchRequest(
         @Size(max = 2000)
         String address,
 
-        UUID stateId,
+        @NotNull
+        UUID gstRegistrationId,
 
         @Size(max = 10)
         String pincode

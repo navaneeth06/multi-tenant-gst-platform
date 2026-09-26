@@ -1,6 +1,6 @@
 package com.navaneeth.multitenantgstplatform.feature.branch.entity;
 
-import com.navaneeth.multitenantgstplatform.feature.master.entity.State;
+import com.navaneeth.multitenantgstplatform.feature.gstregistration.entity.GSTRegistration;
 import com.navaneeth.multitenantgstplatform.feature.tenant.entity.Tenant;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -26,15 +26,15 @@ public class Branch {
     @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "gst_registration_id", nullable = false)
+    private GSTRegistration gstRegistration;
+
     @Column(nullable = false, length = 150)
     private String name;
 
     @Column(columnDefinition = "TEXT")
     private String address;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "state_id")
-    private State state;
 
     @Column(length = 10)
     private String pincode;

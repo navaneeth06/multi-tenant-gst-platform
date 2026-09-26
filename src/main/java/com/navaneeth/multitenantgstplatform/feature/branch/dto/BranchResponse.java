@@ -12,6 +12,8 @@ public record BranchResponse(
         String name,
         String address,
         UUID stateId,
+        UUID gstRegistrationId,
+        String gstin,
         String stateName,
         String pincode,
         BranchStatus status,
