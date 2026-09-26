@@ -15,6 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -30,16 +31,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private UsernamePasswordAuthenticationToken createAuthentication(
             JwtTokenData tokenData,
-            UUID tenantId,
-            UUID roleId
+            UUID currentTenantId,
+            UUID currentRoleId
     ) {
+
+        List<JwtAuthentication.Membership> memberships =
+                tokenData.memberships()
+                        .stream()
+                        .map(item ->
+                                new JwtAuthentication.Membership(
+                                        item.tenantId(),
+                                        item.roleId()
+                                )
+                        )
+                        .toList();
 
         JwtAuthentication principal =
                 new JwtAuthentication(
                         tokenData.userId(),
                         tokenData.username(),
-                        tenantId,
-                        roleId
+                        memberships,
+                        currentTenantId,
+                        currentRoleId
                 );
 
         return new UsernamePasswordAuthenticationToken(
@@ -88,86 +101,70 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
             // -----------------------------------------
-            // 2. Check X-Tenant-Id
-            // -----------------------------------------
+// 2. Check X-Tenant-Id
+// -----------------------------------------
 
             String tenantIdHeader =
                     request.getHeader(TENANT_ID_HEADER);
 
 
-            // -----------------------------------------
-            // 3. No tenant selected
-            // -----------------------------------------
+// -----------------------------------------
+// 3. Select tenant membership
+// -----------------------------------------
+
+            JwtTokenData.TenantRoleData membership;
 
             if (tenantIdHeader == null ||
                     tenantIdHeader.isBlank()) {
 
-                /*
-                 * User is authenticated,
-                 * but there is no tenant context.
-                 *
-                 * Example:
-                 *
-                 * POST /api/v1/tenants
-                 * Authorization: Bearer <token>
-                 *
-                 * or a future global endpoint.
-                 */
+                // No X-Tenant-Id supplied.
+                // Use the first membership as the default tenant.
 
-                UsernamePasswordAuthenticationToken authentication =
-                        createAuthentication(
-                                tokenData,
-                                null,
-                                null
-                        );
+                membership = tokenData.memberships()
+                        .stream()
+                        .findFirst()
+                        .orElse(null);
 
-                SecurityContextHolder
-                        .getContext()
-                        .setAuthentication(authentication);
+            } else {
 
-                filterChain.doFilter(request, response);
-                return;
+                // -----------------------------------------
+                // 4. Parse requested tenant ID
+                // -----------------------------------------
+
+                UUID requestedTenantId;
+
+                try {
+
+                    requestedTenantId =
+                            UUID.fromString(tenantIdHeader);
+
+                } catch (IllegalArgumentException exception) {
+
+                    SecurityContextHolder.clearContext();
+
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
+
+                // -----------------------------------------
+                // 5. Validate tenant membership
+                // -----------------------------------------
+
+                membership = tokenData.memberships()
+                        .stream()
+                        .filter(item ->
+                                item.tenantId()
+                                        .equals(requestedTenantId)
+                        )
+                        .findFirst()
+                        .orElse(null);
             }
 
 
-            // -----------------------------------------
-            // 4. Parse tenant ID
-            // -----------------------------------------
-
-            UUID requestedTenantId;
-
-            try {
-
-                requestedTenantId =
-                        UUID.fromString(tenantIdHeader);
-
-            } catch (IllegalArgumentException exception) {
-
-                SecurityContextHolder.clearContext();
-
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-
-            // -----------------------------------------
-            // 5. Find tenant membership
-            // -----------------------------------------
-
-            JwtTokenData.TenantRoleData membership =
-                    tokenData.memberships()
-                            .stream()
-                            .filter(item ->
-                                    item.tenantId()
-                                            .equals(requestedTenantId)
-                            )
-                            .findFirst()
-                            .orElse(null);
-
-
-            // -----------------------------------------
-            // 6. User doesn't belong to tenant
-            // -----------------------------------------
+// -----------------------------------------
+// 6. User doesn't belong to tenant
+// -----------------------------------------
 
             if (membership == null) {
 
@@ -178,9 +175,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
 
-            // -----------------------------------------
-            // 7. Authenticate with tenant context
-            // -----------------------------------------
+// -----------------------------------------
+// 7. Authenticate with selected tenant
+// -----------------------------------------
 
             UsernamePasswordAuthenticationToken authentication =
                     createAuthentication(

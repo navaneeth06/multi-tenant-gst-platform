@@ -33,10 +33,10 @@ public class SecurityContextService {
     }
 
     public UUID getCurrentTenantId() {
-        return getCurrentUser().tenantId();
+        return getCurrentUser().currentTenantId();
     }
 
     public UUID getCurrentRoleId() {
-        return getCurrentUser().roleId();
+        return getCurrentUser().currentRoleId();
     }
 }
