@@ -18,12 +18,15 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByEmail(String email);
 
+    Optional<User> findByIdAndTenantId(UUID id, UUID tenantId);
+
     @Query("""
             SELECT DISTINCT u
             FROM User u
-            LEFT JOIN FETCH u.memberships m
-            LEFT JOIN FETCH m.tenant
-            LEFT JOIN FETCH m.role
+            LEFT JOIN FETCH u.roles
+            LEFT JOIN FETCH u.branchAccess ba
+            LEFT JOIN FETCH ba.branch
+            WHERE u.tenant.id = :tenantId
             """)
-    List<User> findAllWithMemberships();
+    List<User> findAllByTenantIdWithDetails(UUID tenantId);
 }

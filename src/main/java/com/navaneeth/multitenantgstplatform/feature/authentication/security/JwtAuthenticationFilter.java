@@ -15,13 +15,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
-    private static final String TENANT_ID_HEADER = "X-Tenant-Id";
 
     private final JwtService jwtService;
 
@@ -29,31 +25,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.jwtService = jwtService;
     }
 
-    private UsernamePasswordAuthenticationToken createAuthentication(
-            JwtTokenData tokenData,
-            UUID currentTenantId,
-            UUID currentRoleId
-    ) {
+    private UsernamePasswordAuthenticationToken createAuthentication(JwtTokenData tokenData) {
 
-        List<JwtAuthentication.Membership> memberships =
-                tokenData.memberships()
-                        .stream()
-                        .map(item ->
-                                new JwtAuthentication.Membership(
-                                        item.tenantId(),
-                                        item.roleId()
-                                )
-                        )
-                        .toList();
-
-        JwtAuthentication principal =
-                new JwtAuthentication(
-                        tokenData.userId(),
-                        tokenData.username(),
-                        memberships,
-                        currentTenantId,
-                        currentRoleId
-                );
+        JwtAuthentication principal = new JwtAuthentication(
+                tokenData.userId(),
+                tokenData.username(),
+                tokenData.tenantId(),
+                tokenData.roleIds()
+        );
 
         return new UsernamePasswordAuthenticationToken(
                 principal,
@@ -64,9 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-
-        return request.getServletPath()
-                .equals("/api/v1/auth/login");
+        return request.getServletPath().equals("/api/v1/auth/login");
     }
 
     @Override
@@ -76,122 +53,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String authorizationHeader =
-                request.getHeader("Authorization");
+        String authorizationHeader = request.getHeader("Authorization");
 
         // No JWT → continue as anonymous
-        if (authorizationHeader == null ||
-                !authorizationHeader.startsWith("Bearer ")) {
-
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token =
-                authorizationHeader.substring(7);
+        String token = authorizationHeader.substring(7);
 
         try {
+            JwtTokenData tokenData = jwtService.extractTokenData(token);
 
-            // -----------------------------------------
-            // 1. Validate JWT
-            // -----------------------------------------
+            UsernamePasswordAuthenticationToken authentication = createAuthentication(tokenData);
 
-            JwtTokenData tokenData =
-                    jwtService.extractTokenData(token);
-
-
-            // -----------------------------------------
-// 2. Check X-Tenant-Id
-// -----------------------------------------
-
-            String tenantIdHeader =
-                    request.getHeader(TENANT_ID_HEADER);
-
-
-// -----------------------------------------
-// 3. Select tenant membership
-// -----------------------------------------
-
-            JwtTokenData.TenantRoleData membership;
-
-            if (tenantIdHeader == null ||
-                    tenantIdHeader.isBlank()) {
-
-                // No X-Tenant-Id supplied.
-                // Use the first membership as the default tenant.
-
-                membership = tokenData.memberships()
-                        .stream()
-                        .findFirst()
-                        .orElse(null);
-
-            } else {
-
-                // -----------------------------------------
-                // 4. Parse requested tenant ID
-                // -----------------------------------------
-
-                UUID requestedTenantId;
-
-                try {
-
-                    requestedTenantId =
-                            UUID.fromString(tenantIdHeader);
-
-                } catch (IllegalArgumentException exception) {
-
-                    SecurityContextHolder.clearContext();
-
-                    filterChain.doFilter(request, response);
-                    return;
-                }
-
-
-                // -----------------------------------------
-                // 5. Validate tenant membership
-                // -----------------------------------------
-
-                membership = tokenData.memberships()
-                        .stream()
-                        .filter(item ->
-                                item.tenantId()
-                                        .equals(requestedTenantId)
-                        )
-                        .findFirst()
-                        .orElse(null);
-            }
-
-
-// -----------------------------------------
-// 6. User doesn't belong to tenant
-// -----------------------------------------
-
-            if (membership == null) {
-
-                SecurityContextHolder.clearContext();
-
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-
-// -----------------------------------------
-// 7. Authenticate with selected tenant
-// -----------------------------------------
-
-            UsernamePasswordAuthenticationToken authentication =
-                    createAuthentication(
-                            tokenData,
-                            membership.tenantId(),
-                            membership.roleId()
-                    );
-
-            SecurityContextHolder
-                    .getContext()
-                    .setAuthentication(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (InvalidTokenException exception) {
-
             SecurityContextHolder.clearContext();
         }
 

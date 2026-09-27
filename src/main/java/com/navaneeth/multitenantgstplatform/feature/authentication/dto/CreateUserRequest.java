@@ -13,24 +13,14 @@ import java.util.UUID;
 public class CreateUserRequest {
 
     private String name;
-
     private String email;
-
     private String username;
-
     private String password;
 
-    private List<TenantRoleRequest> memberships;
+    // Roles this user gets — always resolved and validated within the
+    // CALLER's own tenant server-side, never a client-supplied tenantId.
+    private List<UUID> roleIds;
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class TenantRoleRequest {
-
-        private UUID tenantId;
-
-        private UUID roleId;
-    }
+    // Branches (within that same tenant) this user is granted access to.
+    private List<UUID> branchIds;
 }

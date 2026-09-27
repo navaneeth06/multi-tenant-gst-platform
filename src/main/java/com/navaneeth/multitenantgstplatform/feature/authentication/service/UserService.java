@@ -15,4 +15,8 @@ public interface UserService {
     UserResponse updateUser(UUID id, UpdateUserRequest request);
 
     UserResponse toggleUserStatus(UUID id);
+
+    void grantBranchAccess(UUID userId, UUID branchId);
+
+    void revokeBranchAccess(UUID userId, UUID branchId);
 }

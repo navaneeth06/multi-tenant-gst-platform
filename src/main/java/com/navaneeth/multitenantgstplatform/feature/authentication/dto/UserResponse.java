@@ -18,20 +18,29 @@ public class UserResponse {
     private String username;
     private Boolean active;
 
-    private List<MembershipResponse> memberships;
+    private UUID tenantId;
+    private String tenantName;
+
+    private List<RoleResponse> roles;
+    private List<BranchAccessResponse> branchAccess;
 
     @Getter
     @Setter
     @AllArgsConstructor
     @NoArgsConstructor
     @Builder
-    public static class MembershipResponse {
+    public static class RoleResponse {
+        private UUID id;
+        private String name;
+    }
 
-        private UUID tenantId;
-        private String tenantName;
-
-        private UUID roleId;
-        private String roleName;
-        private String roleSlug;
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class BranchAccessResponse {
+        private UUID branchId;
+        private String branchName;
     }
 }

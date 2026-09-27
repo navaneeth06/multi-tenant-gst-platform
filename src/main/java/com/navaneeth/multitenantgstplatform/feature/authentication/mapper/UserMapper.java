@@ -4,38 +4,31 @@ import com.navaneeth.multitenantgstplatform.feature.authentication.dto.CreateUse
 import com.navaneeth.multitenantgstplatform.feature.authentication.dto.UpdateUserRequest;
 import com.navaneeth.multitenantgstplatform.feature.authentication.dto.UserResponse;
 import com.navaneeth.multitenantgstplatform.feature.authentication.entity.User;
-import com.navaneeth.multitenantgstplatform.feature.authorization.entity.TenantUser;
+import com.navaneeth.multitenantgstplatform.feature.authorization.entity.Role;
+import com.navaneeth.multitenantgstplatform.feature.authorization.entity.UserBranchAccess;
 import org.mapstruct.*;
-
-import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
+    @Mapping(target = "tenant", ignore = true)
+    @Mapping(target = "roles", ignore = true)
+    @Mapping(target = "branchAccess", ignore = true)
+    @Mapping(target = "password", ignore = true)
     User toEntity(CreateUserRequest request);
-
-    @Mapping(target = "memberships", source = "memberships")
-    UserResponse toResponse(User user);
-
-    List<UserResponse.MembershipResponse> toMembershipResponses(
-            List<TenantUser> memberships
-    );
 
     @Mapping(source = "tenant.id", target = "tenantId")
     @Mapping(source = "tenant.name", target = "tenantName")
-    @Mapping(source = "role.id", target = "roleId")
-    @Mapping(source = "role.name", target = "roleName")
-    @Mapping(source = "role.slug", target = "roleSlug")
-    UserResponse.MembershipResponse toMembershipResponse(
-            TenantUser tenantUser
-    );
+    @Mapping(source = "roles", target = "roles")
+    @Mapping(source = "branchAccess", target = "branchAccess")
+    UserResponse toResponse(User user);
 
-    @BeanMapping(
-            nullValuePropertyMappingStrategy =
-                    NullValuePropertyMappingStrategy.IGNORE
-    )
-    void updateUser(
-            UpdateUserRequest request,
-            @MappingTarget User user
-    );
+    UserResponse.RoleResponse toRoleResponse(Role role);
+
+    @Mapping(source = "branch.id", target = "branchId")
+    @Mapping(source = "branch.name", target = "branchName")
+    UserResponse.BranchAccessResponse toBranchAccessResponse(UserBranchAccess access);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    void updateUser(UpdateUserRequest request, @MappingTarget User user);
 }

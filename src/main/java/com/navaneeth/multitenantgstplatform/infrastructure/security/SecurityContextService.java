@@ -5,6 +5,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -13,16 +14,10 @@ public class SecurityContextService {
     public JwtAuthentication getCurrentUser() {
 
         Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
+                SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null ||
-                !authentication.isAuthenticated()) {
-
-            throw new IllegalStateException(
-                    "User is not authenticated"
-            );
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("User is not authenticated");
         }
 
         return (JwtAuthentication) authentication.getPrincipal();
@@ -33,10 +28,10 @@ public class SecurityContextService {
     }
 
     public UUID getCurrentTenantId() {
-        return getCurrentUser().currentTenantId();
+        return getCurrentUser().tenantId();
     }
 
-    public UUID getCurrentRoleId() {
-        return getCurrentUser().currentRoleId();
+    public List<UUID> getCurrentRoleIds() {
+        return getCurrentUser().roleIds();
     }
 }

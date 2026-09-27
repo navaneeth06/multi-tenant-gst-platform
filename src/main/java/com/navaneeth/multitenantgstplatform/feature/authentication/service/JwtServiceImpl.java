@@ -14,7 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -27,37 +26,30 @@ public class JwtServiceImpl implements JwtService {
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration}") long expiration
     ) {
-
-        this.secretKey = Keys.hmacShaKeyFor(
-                secret.getBytes(StandardCharsets.UTF_8)
-        );
-
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expiration = expiration;
     }
 
     @Override
-    public String generateAccessToken(
-            User user,
-            List<JwtTokenData.TenantRoleData> memberships
-    ) {
+    public String generateAccessToken(User user) {
 
         Instant now = Instant.now();
         Instant expiry = now.plusMillis(expiration);
 
-        List<Map<String, String>> membershipClaims =
-                memberships.stream()
-                        .map(membership -> Map.of(
-                                "tenantId",
-                                membership.tenantId().toString(),
-                                "roleId",
-                                membership.roleId().toString()
-                        ))
-                        .toList();
+        // Nullable — a SUPER_ADMIN has no tenant (Module 4).
+        String tenantId = user.getTenant() != null
+                ? user.getTenant().getId().toString()
+                : null;
+
+        List<String> roleIds = user.getRoles().stream()
+                .map(role -> role.getId().toString())
+                .toList();
 
         return Jwts.builder()
                 .subject(user.getId().toString())
                 .claim("username", user.getUsername())
-                .claim("memberships", membershipClaims)
+                .claim("tenantId", tenantId)
+                .claim("roleIds", roleIds)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiry))
                 .signWith(secretKey)
@@ -73,47 +65,29 @@ public class JwtServiceImpl implements JwtService {
     public JwtTokenData extractTokenData(String token) {
 
         try {
-
             Claims claims = Jwts.parser()
                     .verifyWith(secretKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
 
-            UUID userId =
-                    UUID.fromString(claims.getSubject());
+            UUID userId = UUID.fromString(claims.getSubject());
+            String username = claims.get("username", String.class);
 
-            String username =
-                    claims.get("username", String.class);
+            String tenantIdClaim = claims.get("tenantId", String.class);
+            UUID tenantId = tenantIdClaim != null ? UUID.fromString(tenantIdClaim) : null;
 
-            List<Map<String, String>> rawMemberships =
-                    claims.get("memberships", List.class);
+            @SuppressWarnings("unchecked")
+            List<String> rawRoleIds = claims.get("roleIds", List.class);
 
-            List<JwtTokenData.TenantRoleData> memberships =
-                    rawMemberships.stream()
-                            .map(membership ->
-                                    new JwtTokenData.TenantRoleData(
-                                            UUID.fromString(
-                                                    membership.get("tenantId")
-                                            ),
-                                            UUID.fromString(
-                                                    membership.get("roleId")
-                                            )
-                                    )
-                            )
-                            .toList();
+            List<UUID> roleIds = rawRoleIds.stream()
+                    .map(UUID::fromString)
+                    .toList();
 
-            return new JwtTokenData(
-                    userId,
-                    username,
-                    memberships
-            );
+            return new JwtTokenData(userId, username, tenantId, roleIds);
 
         } catch (Exception e) {
-
-            throw new InvalidTokenException(
-                    "Invalid or expired token"
-            );
+            throw new InvalidTokenException("Invalid or expired token");
         }
     }
 }

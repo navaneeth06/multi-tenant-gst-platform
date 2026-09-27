@@ -4,6 +4,7 @@ import com.navaneeth.multitenantgstplatform.feature.authentication.security.Auth
 import com.navaneeth.multitenantgstplatform.feature.authentication.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -33,9 +34,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
 
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS
-                        )
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
                 .exceptionHandling(exception ->
@@ -44,13 +43,12 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public endpoints
-                        .requestMatchers(
-                                "/api/v1/auth/login",
-                                "/api/v1/tenants"
-                        ).permitAll()
+                        // Public: only these specific method+path combinations
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/tenants").permitAll()
 
-                        // Everything else requires authentication
+                        // Everything else — including GET /api/v1/tenants — requires auth
                         .anyRequest().authenticated()
                 )
 

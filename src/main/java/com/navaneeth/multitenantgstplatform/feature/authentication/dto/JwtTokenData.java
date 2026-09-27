@@ -6,12 +6,7 @@ import java.util.UUID;
 public record JwtTokenData(
         UUID userId,
         String username,
-        List<TenantRoleData> memberships
+        UUID tenantId,
+        List<UUID> roleIds
 ) {
-
-    public record TenantRoleData(
-            UUID tenantId,
-            UUID roleId
-    ) {
-    }
 }

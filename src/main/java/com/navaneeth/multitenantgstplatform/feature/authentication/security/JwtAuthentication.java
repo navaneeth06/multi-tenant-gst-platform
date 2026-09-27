@@ -6,15 +6,7 @@ import java.util.UUID;
 public record JwtAuthentication(
         UUID userId,
         String username,
-        List<Membership> memberships,
-        UUID currentTenantId,
-        UUID currentRoleId
+        UUID tenantId,
+        List<UUID> roleIds
 ) {
-
-    public record Membership(
-            UUID tenantId,
-            UUID roleId
-    ) {
-    }
-
 }
