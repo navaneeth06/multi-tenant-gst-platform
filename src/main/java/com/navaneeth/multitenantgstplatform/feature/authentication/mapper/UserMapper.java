@@ -30,5 +30,7 @@ public interface UserMapper {
     UserResponse.BranchAccessResponse toBranchAccessResponse(UserBranchAccess access);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "roles", ignore = true)
+    @Mapping(target = "branchAccess", ignore = true)
     void updateUser(UpdateUserRequest request, @MappingTarget User user);
 }

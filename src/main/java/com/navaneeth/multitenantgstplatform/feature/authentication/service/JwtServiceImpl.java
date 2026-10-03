@@ -87,6 +87,7 @@ public class JwtServiceImpl implements JwtService {
             return new JwtTokenData(userId, username, tenantId, roleIds);
 
         } catch (Exception e) {
+            System.out.println("err" + e.getMessage());
             throw new InvalidTokenException("Invalid or expired token");
         }
     }

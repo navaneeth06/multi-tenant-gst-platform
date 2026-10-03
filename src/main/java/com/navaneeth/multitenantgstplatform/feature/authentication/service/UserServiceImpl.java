@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -90,7 +91,48 @@ public class UserServiceImpl implements UserService {
 
         userMapper.updateUser(request, user);
 
-        return userMapper.toResponse(userRepository.save(user));
+        if (request.getRoleIds() != null) {
+            user.setRoles(resolveRoles(tenantId, request.getRoleIds()));
+        }
+
+        if (request.getBranchIds() != null) {
+            syncBranchAccess(user, tenantId, request.getBranchIds());
+        }
+
+        User updated = userRepository.save(user);
+
+        return userMapper.toResponse(updated);
+    }
+
+    /**
+     * Replaces the user's branch access with exactly the set provided —
+     * grants any new branch not currently held, revokes any currently held
+     * branch not in the new list. This mirrors the same "PUT = replace the
+     * whole set" semantic used for roles.
+     */
+    private void syncBranchAccess(User user, UUID tenantId, List<UUID> newBranchIds) {
+
+        Set<UUID> currentBranchIds = userBranchAccessRepository
+                .findByUser_Id(user.getId())
+                .stream()
+                .map(access -> access.getBranch().getId())
+                .collect(Collectors.toSet());
+
+        Set<UUID> targetBranchIds = new HashSet<>(newBranchIds);
+
+        // revoke anything no longer in the target set
+        currentBranchIds.stream()
+                .filter(branchId -> !targetBranchIds.contains(branchId))
+                .forEach(branchId -> {
+                    userBranchAccessRepository.deleteByUser_IdAndBranch_Id(user.getId(), branchId);
+                    user.getBranchAccess().removeIf(access ->
+                            access.getBranch().getId().equals(branchId));   // <-- THE FIX for revoke
+                });
+
+        // grant anything new
+        targetBranchIds.stream()
+                .filter(branchId -> !currentBranchIds.contains(branchId))
+                .forEach(branchId -> grantBranchAccessInternal(user, tenantId, branchId));
     }
 
     @Override
@@ -136,13 +178,18 @@ public class UserServiceImpl implements UserService {
         Branch branch = branchRepository.findByIdAndTenantId(branchId, tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Branch not found for this tenant"));
 
-        if (userBranchAccessRepository.existsByUser_IdAndBranch_Id(user.getId(), branchId)) {
+        boolean alreadyGranted = user.getBranchAccess().stream()
+                .anyMatch(access -> access.getBranch().getId().equals(branchId));
+
+        if (alreadyGranted) {
             return; // already granted — idempotent, not an error
         }
 
-        userBranchAccessRepository.save(
+        UserBranchAccess access = userBranchAccessRepository.save(
                 UserBranchAccess.builder().user(user).branch(branch).build()
         );
+
+        user.getBranchAccess().add(access);   // <-- THE FIX: keep in-memory state in sync
     }
 
     private Set<Role> resolveRoles(UUID tenantId, List<UUID> roleIds) {
@@ -153,7 +200,7 @@ public class UserServiceImpl implements UserService {
 
         Set<Role> roles = new HashSet<>();
         for (UUID roleId : roleIds) {
-            roles.add(roleRepository.findByIdAndTenantId(roleId, tenantId)
+            roles.add(roleRepository.findAssignableByIdAndTenantId(roleId, tenantId)
                     .orElseThrow(() -> new IllegalArgumentException("Role does not belong to this tenant")));
         }
         return roles;

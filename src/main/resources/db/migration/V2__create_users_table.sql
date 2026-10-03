@@ -1,24 +1,29 @@
 CREATE TABLE users
 (
-    id         UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
+    id            UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
 
-    name       VARCHAR(255) NOT NULL,
+    tenant_id     UUID REFERENCES tenants (id), -- nullable: NULL = SUPER_ADMIN (platform-level)
 
-    email      VARCHAR(255) NOT NULL,
+    name          VARCHAR(255) NOT NULL,
 
-    username   VARCHAR(255) NOT NULL,
+    email         VARCHAR(255) NOT NULL,
 
-    password   VARCHAR(255) NOT NULL,
+    username      VARCHAR(255) NOT NULL,
 
-    active     BOOLEAN      NOT NULL DEFAULT TRUE,
+    password_hash VARCHAR(255) NOT NULL,
 
-    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    active        BOOLEAN      NOT NULL DEFAULT TRUE,
 
-    updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE UNIQUE INDEX uk_users_username
-    ON users (username);
+CREATE INDEX idx_users_tenant_id
+    ON users (tenant_id);
 
-CREATE UNIQUE INDEX uk_users_email
-    ON users (email)
+CREATE UNIQUE INDEX uk_users_tenant_username
+    ON users (tenant_id, username);
+
+CREATE UNIQUE INDEX uk_users_tenant_email
+    ON users (tenant_id, email);
